@@ -46,6 +46,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "QuantumultX_Profiles.conf"
 
+# ============================================================
+# Koolson/Qure 图标 (专为 Quantumult X 设计的图标集)
+# https://github.com/Koolson/Qure  (IconSet/ 目录)
+# ⚠️ 必须用 jsdelivr 镜像, raw.githubusercontent.com 国内断流
+# ============================================================
+QURE_ICON = "https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet"
+ICON_DAILY = f"{QURE_ICON}/Daily.png"          # 每日任务/签到
+ICON_ADBLACK = f"{QURE_ICON}/AdBlack.png"      # 去广告
+ICON_ADVERTISING = f"{QURE_ICON}/Advertising.png"  # 广告拦截
+
 # ===========================================================================
 # 稳定参数 - 这些段在脚本里直接构造, 不依赖任何外部 .conf 文件
 # ===========================================================================
@@ -76,25 +86,37 @@ icmp_auto_reply = true
 
 POLICY_GROUPS = """[policy]
 ; ============================================================
-; 策略组 - static 手动选择 + url-latency-benchmark 定时自动测速
-; 说明: 引用"节点订阅 tag"的成员(如 🇭🇰 香港节点)在填入机场订阅后自动匹配,
-;       同时保留 direct/reject 兜底, 保证策略组不为空。
-; 注意: 不要使用 `default = xxx` 键, 也不要额外写 [find-mainland] 等独立段,
-;       这些都不是 Quantumult X 合法语法, 会导致导入失败。
+; 策略组 - 2026 排布: 被引用的组先定义, 组组带 Koolson/Qure 图标
+;
+; ⚠️ 地区组必须用 server-tag-regex 正则匹配"订阅节点名"来定义
+;    (机场节点名通常带 香港/HK/日本/JP 等关键词), 不能直接引用不存在的名字,
+;    否则导入报"未知策略或节点"!
 ;
 ; ⚡ 极速测速 (url-latency-benchmark) - 定时自动测速选最快节点:
 ;   check-interval=600   每 600 秒(10 分钟)测速一次
 ;   alive-checking=true  即使策略空闲(无流量经过)也按间隔持续测速 ← 定时核心参数
 ;   tolerance=0          只要发现延迟更低的节点就立即切换(可调大如 100 防频繁切换)
-;   server-tag-regex=^.* 匹配所有订阅节点; 若你修改了订阅 tag, 无需改这里
 ;   依赖 [general] 的 server_check_url / server_check_timeout (已配置)
 ; ============================================================
-static = 节点选择, ⚡ 极速测速, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇸 美国节点, 🇸🇬 新加坡节点, direct, reject
+static = 🇭🇰 香港节点, server-tag-regex=香港|🇭🇰|HK|Hong, img-url=%(ICON_HK)s
+static = 🇯🇵 日本节点, server-tag-regex=日本|🇯🇵|JP|Japan, img-url=%(ICON_JP)s
+static = 🇺🇸 美国节点, server-tag-regex=美国|🇺🇸|US|States, img-url=%(ICON_US)s
+static = 🇸🇬 新加坡节点, server-tag-regex=新加坡|狮城|🇸🇬|SG|Singapore, img-url=%(ICON_SG)s
 url-latency-benchmark = ⚡ 极速测速, server-tag-regex=^.*, check-interval=600, alive-checking=true, tolerance=0
-static = 📺 Netflix, 节点选择
-static = 🎬 YouTube, 节点选择
-static = 国内直连, direct, reject
-"""
+static = 节点选择, ⚡ 极速测速, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇸 美国节点, 🇸🇬 新加坡节点, direct, reject, img-url=%(ICON_PROXY)s
+static = 📺 Netflix, 节点选择, img-url=%(ICON_NETFLIX)s
+static = 🎬 YouTube, 节点选择, img-url=%(ICON_YOUTUBE)s
+static = 国内直连, direct, reject, img-url=%(ICON_DOMESTIC)s
+""" % {
+    "ICON_HK": f"{QURE_ICON}/HK.png",
+    "ICON_JP": f"{QURE_ICON}/JP.png",
+    "ICON_US": f"{QURE_ICON}/US.png",
+    "ICON_SG": f"{QURE_ICON}/SG.png",
+    "ICON_PROXY": f"{QURE_ICON}/Proxy.png",
+    "ICON_NETFLIX": f"{QURE_ICON}/Netflix.png",
+    "ICON_YOUTUBE": f"{QURE_ICON}/YouTube.png",
+    "ICON_DOMESTIC": f"{QURE_ICON}/Domestic.png",
+}
 
 SERVER_REMOTE_PLACEHOLDER = """[server_remote]
 ; ⚠️⚠️⚠️ 必须填你自己的机场订阅链接 ⚠️⚠️⚠️
@@ -138,16 +160,6 @@ server = 8.8.8.8
 SERVER_LOCAL = """[server_local]
 ; 在这里填手动配置的本地节点（一般用不到）
 """
-
-# ============================================================
-# Koolson/Qure 图标 (专为 Quantumult X 设计的图标集, MIT 转载需注明出处)
-# https://github.com/Koolson/Qure  (IconSet/ 目录)
-# ⚠️ 必须用 jsdelivr 镜像, raw.githubusercontent.com 国内断流
-# ============================================================
-QURE_ICON = "https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet"
-ICON_DAILY = f"{QURE_ICON}/Daily.png"          # 每日任务/签到
-ICON_ADBLACK = f"{QURE_ICON}/AdBlack.png"      # 去广告
-ICON_ADVERTISING = f"{QURE_ICON}/Advertising.png"  # 广告拦截
 
 TASK_LOCAL_BASE = """[task_local]
 ; ============================================================
