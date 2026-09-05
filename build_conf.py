@@ -289,6 +289,46 @@ BM_REWRITE_PATHS = [
     ("rewrite/QuantumultX/Upgrade/Upgrade.conf", "⬆️ HTTPS 升级"),
 ]
 
+# ---------- 子资源本地化 ----------
+# 重写 conf 内部引用的 .js 子资源 (raw/gist 国内断流, DivineEngine 已 404),
+# 已固化到本仓库 scripts/ 目录, 引用统一走本仓库 jsdelivr, 消除"问题存在于子资源"。
+SELF_OWNER = "hwind2021"
+SELF_REPO = "QuantumultX-Profile-CN"
+SELF_BASE_JD = f"https://cdn.jsdelivr.net/gh/{SELF_OWNER}/{SELF_REPO}@main"
+
+SCRIPT_URL_MAP = {
+    # 上游(死链/断流) → 本仓库 scripts/ 文件名
+    "https://gist.githubusercontent.com/blackmatrix7/f5f780d0f56b319b6ad9848fd080bb18/raw/zheye.min.js": "zheye.min.js",
+    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/script/smzdm/smzdm_remove_ads.js": "smzdm_remove_ads.js",
+    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/script/startup/startup.js": "startup.js",
+    "https://raw.githubusercontent.com/DivineEngine/Profiles/master/Surge/Rewrite/bstar.js": "bstar.js",
+}
+
+# 需要本地化的重写 conf: (上游 jsdelivr URL, 输出到本仓库 rewrite-local/ 的文件名)
+LOCALIZED_REWRITE_SOURCES = [
+    (f"{HW_BASE_JD}/quantumultx/rewrite/AdBlock-Script.conf", "AdBlock-Script.conf"),
+    (f"{HW_BASE_JD}/quantumultx/rewrite/AdBlock-All.conf", "AdBlock-All.conf"),
+    (f"{BM_BASE_JD}/rewrite/QuantumultX/AllInOne/AllInOne.conf", "AllInOne.conf"),
+]
+
+
+def build_localized_rewrites() -> list[str]:
+    """拉上游重写 conf → 替换断流子资源 URL → 写入本仓库 rewrite-local/。"""
+    outdir = ROOT / "rewrite-local"
+    outdir.mkdir(exist_ok=True)
+    written = []
+    for url, name in LOCALIZED_REWRITE_SOURCES:
+        text = fetch_text(url)
+        if text is None:
+            print(f"  - ⚠️ 上游重写拉取失败, 保留已有本地版: {name}")
+            continue
+        for old, fname in SCRIPT_URL_MAP.items():
+            text = text.replace(old, f"{SELF_BASE_JD}/scripts/{fname}")
+        (outdir / name).write_text(text, encoding="utf-8")
+        written.append(name)
+        print(f"  - 本地化重写已更新: rewrite-local/{name}")
+    return written
+
 
 def fmt_rewrite_hw(path: str, tag: str) -> str:
     raw, _jd = dual_url(path, HW_OWNER, HW_REPO, HW_BRANCH)
@@ -303,23 +343,41 @@ def fmt_rewrite_bm(path: str, tag: str) -> str:
 def build_rewrite_remote() -> str:
     lines = [
         "[rewrite_remote]",
-        "; === hwind2021/QuantumultX-AdBlock-CN 国内化重写规则 (4 条) ===",
+        "; === hwind2021/QuantumultX-AdBlock-CN 国内化重写规则 ===",
         f"; 仓库: https://github.com/{HW_OWNER}/{HW_REPO}",
         "; Splash: 针对国内 App 开屏广告 SDK 重写 (pangolin / snssdk / gdt)",
         "; Feed:   针对信息流广告接口重写",
         "; Script: 针对脚本型广告位重写",
         "; All:    Splash + Feed + Script 合并版, 与前三选其一",
+        ";",
+        "; ⚠️ Script / All / AllInOne 三条引用的是本仓库 rewrite-local/ 本地化版:",
+        ";    上游 conf 内部的 .js 子资源全是 raw/gist 链接(国内断流, bstar.js 所在的",
+        ";    DivineEngine 仓库已 404), 已将脚本固化到本仓库 scripts/ 并替换为 jsdelivr,",
+        ";    否则 QX 报「N 个问题存在于子资源」。",
         "",
     ]
     for path, tag in HW_REWRITE_PATHS:
-        lines.append(fmt_rewrite_hw(path, tag))
+        # Script / All 用本地化版 (子资源已替换)
+        fname = path.rsplit("/", 1)[-1]
+        if fname in ("AdBlock-Script.conf", "AdBlock-All.conf"):
+            lines.append(
+                f"{SELF_BASE_JD}/rewrite-local/{fname}, tag={tag}, update-interval=86400, opt-parser=false, enabled=true"
+            )
+        else:
+            lines.append(fmt_rewrite_hw(path, tag))
     lines.extend([
         "",
         "; === blackmatrix7 综合重写 (补充) ===",
         "",
     ])
     for path, tag in BM_REWRITE_PATHS:
-        lines.append(fmt_rewrite_bm(path, tag))
+        fname = path.rsplit("/", 1)[-1]
+        if fname == "AllInOne.conf":
+            lines.append(
+                f"{SELF_BASE_JD}/rewrite-local/{fname}, tag={tag}, update-interval=86400, opt-parser=false, enabled=true"
+            )
+        else:
+            lines.append(fmt_rewrite_bm(path, tag))
     return "\n".join(lines)
 
 
@@ -389,6 +447,7 @@ def main() -> int:
     sec_filter = build_filter_remote()
 
     print(f"[3/5] 构造 [rewrite_remote] ({len(HW_REWRITE_PATHS) + len(BM_REWRITE_PATHS)} 条) ...")
+    build_localized_rewrites()  # 先本地化含断流子资源的重写 conf
     sec_rewrite = build_rewrite_remote()
 
     print(f"[4/5] 构造 [task_local] ...")
