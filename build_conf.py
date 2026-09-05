@@ -107,6 +107,20 @@ static = 节点选择, ⚡ 极速测速, 🇭🇰 香港节点, 🇯🇵 日本�
 static = 📺 Netflix, 节点选择, img-url=%(ICON_NETFLIX)s
 static = 🎬 YouTube, 节点选择, img-url=%(ICON_YOUTUBE)s
 static = 国内直连, direct, reject, img-url=%(ICON_DOMESTIC)s
+; ---- 分流规则专属组 (与 [filter_remote] 的 force-policy 一一对应) ----
+; ⚠️ [filter_remote] 中不带 force-policy 的远程规则会让 QX 启动时"自动补齐"
+;    同名策略组(成员仅 direct/proxy/reject, 无图标、默认策略不合理)。
+;    此处显式定义接管, 组名必须与规则名一致:
+;    拦截类默认 reject(可临时切 direct 排查误伤), 国内类默认 direct, 国外类默认 节点选择。
+static = Advertising, reject, direct, img-url=%(ICON_ADV)s
+static = Privacy, reject, direct, img-url=%(ICON_PRIVACY)s
+static = Hijacking, reject, direct, img-url=%(ICON_HIJACK)s
+static = Global, 节点选择, direct, img-url=%(ICON_GLOBAL)s
+static = GlobalMedia, 节点选择, direct, img-url=%(ICON_GLOBALMEDIA)s
+static = Apple, direct, 节点选择, img-url=%(ICON_APPLE)s
+static = PrivateTracker, 节点选择, direct, img-url=%(ICON_PT)s
+static = China, direct, 节点选择, img-url=%(ICON_CHINA)s
+static = ChinaMedia, direct, 节点选择, img-url=%(ICON_CHINAMEDIA)s
 """ % {
     "ICON_HK": f"{QURE_ICON}/HK.png",
     "ICON_JP": f"{QURE_ICON}/JP.png",
@@ -116,6 +130,15 @@ static = 国内直连, direct, reject, img-url=%(ICON_DOMESTIC)s
     "ICON_NETFLIX": f"{QURE_ICON}/Netflix.png",
     "ICON_YOUTUBE": f"{QURE_ICON}/YouTube.png",
     "ICON_DOMESTIC": f"{QURE_ICON}/Domestic.png",
+    "ICON_ADV": f"{QURE_ICON}/Advertising.png",
+    "ICON_PRIVACY": f"{QURE_ICON}/AdBlack.png",
+    "ICON_HIJACK": f"{QURE_ICON}/Hijacking.png",
+    "ICON_GLOBAL": f"{QURE_ICON}/Global.png",
+    "ICON_GLOBALMEDIA": f"{QURE_ICON}/GlobalMedia.png",
+    "ICON_APPLE": f"{QURE_ICON}/Apple.png",
+    "ICON_PT": f"{QURE_ICON}/Download.png",
+    "ICON_CHINA": f"{QURE_ICON}/China.png",
+    "ICON_CHINAMEDIA": f"{QURE_ICON}/DomesticMedia.png",
 }
 
 SERVER_REMOTE_PLACEHOLDER = """[server_remote]
@@ -240,21 +263,25 @@ BM_FILTER_PATHS = [
     #    否则泛流媒体规则先命中导致 force-policy 失效
     # 3) Apple/Direct 等直连专项排在 Global 之前, 保证苹果等域名可直连
     # 4) IP 级宽泛规则(ChinaASN/ChinaIPs)放最后兜底
-    ("rule/QuantumultX/Advertising/Advertising.list", "⛔ 去广告(全量)", None),
-    ("rule/QuantumultX/Privacy/Privacy.list", "🛡️ 隐私追踪拦截", None),
-    ("rule/QuantumultX/Hijacking/Hijacking.list", "🚫 运营商劫持", None),
-    ("rule/QuantumultX/Proxy/Proxy.list", "🌐 代理域名", None),
+    #
+    # ⚠️ 每条都必须带 force-policy! 不带 force-policy 的规则会让 QX 启动时
+    #    "自动补齐"同名策略组(成员仅 direct/proxy/reject, 无图标、默认不合理)。
+    #    引用的组要么是 [policy] 已定义组, 要么是 direct/reject 内置策略。
+    ("rule/QuantumultX/Advertising/Advertising.list", "⛔ 去广告(全量)", "Advertising"),
+    ("rule/QuantumultX/Privacy/Privacy.list", "🛡️ 隐私追踪拦截", "Privacy"),
+    ("rule/QuantumultX/Hijacking/Hijacking.list", "🚫 运营商劫持", "Hijacking"),
+    ("rule/QuantumultX/Proxy/Proxy.list", "🌐 代理域名", "节点选择"),
     ("rule/QuantumultX/Netflix/Netflix.list", "📺 Netflix", "📺 Netflix"),
     ("rule/QuantumultX/YouTube/YouTube.list", "🎬 YouTube", "🎬 YouTube"),
-    ("rule/QuantumultX/GlobalMedia/GlobalMedia.list", "🎬 国外流媒体", None),
-    ("rule/QuantumultX/Apple/Apple.list", "🍎 Apple 服务", None),
-    ("rule/QuantumultX/Direct/Direct.list", "🎯 直连域名", None),
-    ("rule/QuantumultX/PrivateTracker/PrivateTracker.list", "🔒 BT/PT 资源", None),
-    ("rule/QuantumultX/Global/Global.list", "🌍 国外网站", None),
-    ("rule/QuantumultX/China/China.list", "🐼 国内网站", None),
-    ("rule/QuantumultX/ChinaMedia/ChinaMedia.list", "📺 国内视频", None),
-    ("rule/QuantumultX/ChinaASN/ChinaASN.list", "🇨🇳 国内 ASN IP", None),
-    ("rule/QuantumultX/ChinaIPs/ChinaIPs.list", "🇨🇳 国内 IP 池", None),
+    ("rule/QuantumultX/GlobalMedia/GlobalMedia.list", "🎬 国外流媒体", "GlobalMedia"),
+    ("rule/QuantumultX/Apple/Apple.list", "🍎 Apple 服务", "Apple"),
+    ("rule/QuantumultX/Direct/Direct.list", "🎯 直连域名", "direct"),
+    ("rule/QuantumultX/PrivateTracker/PrivateTracker.list", "🔒 BT/PT 资源", "PrivateTracker"),
+    ("rule/QuantumultX/Global/Global.list", "🌍 国外网站", "Global"),
+    ("rule/QuantumultX/China/China.list", "🐼 国内网站", "China"),
+    ("rule/QuantumultX/ChinaMedia/ChinaMedia.list", "📺 国内视频", "ChinaMedia"),
+    ("rule/QuantumultX/ChinaASN/ChinaASN.list", "🇨🇳 国内 ASN IP", "direct"),
+    ("rule/QuantumultX/ChinaIPs/ChinaIPs.list", "🇨🇳 国内 IP 池", "direct"),
 ]
 
 
