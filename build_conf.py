@@ -116,8 +116,8 @@ REWRITE_LOCAL = """[rewrite_local]
 """
 
 DNS = """[dns]
-; Quantumult X [dns] 使用可重复的 server= 声明上游 DNS, 并发取最优
-server = system
+; Quantumult X [dns] 使用可重复的 server= 声明上游 DNS（仅 IP，不能用 system 关键字）
+server = 114.114.114.114
 server = 223.5.5.5
 server = 119.29.29.29
 server = 119.28.28.28
