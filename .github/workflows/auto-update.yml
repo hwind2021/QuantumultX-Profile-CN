@@ -1,0 +1,76 @@
+name: Auto-update QuantumultX profile
+
+on:
+  schedule:
+    # 每周日 04:00 (UTC+8)  =  Saturday 20:00 UTC
+    - cron: '0 20 * * 6'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: '强制重新构建（即使文件未变也提交）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Fetch upstream reference (KOP-XIAO template segments)
+        run: |
+          mkdir -p .workbuddy_refs
+          curl -fsSL "https://raw.githubusercontent.com/KOP-XIAO/QuantumultX/master/QuantumultX_Profiles.conf" \
+            -o .workbuddy_refs/kop_xiao.conf || echo "WARN: KOP-XIAO 上游拉取失败，跳过模板段同步"
+
+      - name: Run build_conf.py
+        run: python build_conf.py
+
+      - name: Validate segments
+        id: validate
+        run: |
+          python - << 'PYEOF'
+          import re, sys
+          try:
+              with open('QuantumultX_Profiles.conf', 'r', encoding='utf-8') as f:
+                  txt = f.read()
+          except FileNotFoundError:
+              print('FAIL: QuantumultX_Profiles.conf not found'); sys.exit(1)
+          required = ['[general]', '[server_remote]', '[policy]', '[filter_remote]', '[rewrite_remote]', '[task_local]']
+          missing = [r for r in required if r not in txt]
+          if missing:
+              print(f'FAIL: 缺失段位 {missing}'); sys.exit(1)
+          filter_n = len(re.findall(r'^\s*https?://[^\s,;]+\.list', txt, re.MULTILINE))
+          rewrite_n = len(re.findall(r'^\s*https?://[^\s,;]+\.conf', txt, re.MULTILINE))
+          print(f'PASS: filter={filter_n} rewrite={rewrite_n}')
+          PYEOF
+
+      - name: Auto-commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet QuantumultX_Profiles.conf && [ "${{ github.event.inputs.force }}" != "true" ]; then
+            echo "NO_CHANGES"
+            exit 0
+          fi
+          git add QuantumultX_Profiles.conf
+          MSG="chore: 自动更新主配置 $(date -u +'%Y-%m-%d %H:%M UTC')"
+          if [ -n "${{ github.event.head_commit.message }}" ]; then
+            MSG="chore: 自动更新主配置（手动触发）"
+          fi
+          git commit -m "$MSG"
+          git push
+          echo "PUSHED"
