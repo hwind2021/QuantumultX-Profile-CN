@@ -60,50 +60,33 @@ resource_parser_url = https://cdn.jsdelivr.net/gh/KOP-XIAO/QuantumultX@master/Sc
 geo_location_checker = https://cdn.jsdelivr.net/gh/KOP-XIAO/QuantumultX@master/Scripts/geo_location_checker.js
 ; geoip_check_url = https://github.com/KOP-XIAO/QuantumultX/releases/download/resource/qqwry.dat
 
-allow_when_vpn_disable = true
-allow_normal_when_vpn_disable = true
-allow_wifi_access = true
-allow_celluar_access = true
-
-ipv6 = true
-prefer_ipv6 = false
-private_ip = 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fd00::/8
+; ---- 以下均为 Quantumult X [general] 支持键 (对齐 KOP-XIAO 模板), 全部合法 ----
 dns_exclusion_list = 1.0.0.1, 8.8.4.4, 8.8.8.8, 9.9.9.9, 149.112.112.112, 114.114.114.114, 114.114.115.115, 223.5.5.5, 223.6.6.6, 119.29.29.29, 119.28.28.28
-
 udp_whitelist = 80, 443
-udp_force_through = false
-tcp_whitelist = 80, 443
-tcp_force_through = false
-
-always_real_ip = false
-bypass_asia = false
-bypass_cn = false
-bypass_lan = false
-bypass_multicast = false
-bypass_tun_lan = false
-
-ssid_suspended_list = 默认 1, 默认 2
-wifi_white_list = 默认
-cellular_white_list = 默认
-
-running_mode_trigger = ssid
+fallback_udp_policy = direct
+icmp_auto_reply = true
 """
+# ============================================================
+# 注意(给后续维护者): 不要往 [general] 里加 allow_when_vpn_disable /
+#   allow_normal_when_vpn_disable / allow_wifi_access / allow_cellular_access /
+#   tcp_force_through / udp_force_through / always_real_ip / bypass_* /
+#   tcp_whitelist / wifi_white_list / cellular_white_list 等键 —— 这些是
+#   Loon/Surge 风格, Quantumult X 不识别, 会报"配置文件语法错误"导入失败。
+# ============================================================
 
 POLICY_GROUPS = """[policy]
 ; ============================================================
-; 策略组 - 单一 default 模式
+; 策略组 - 全部为 static 类型
+; 说明: 引用"节点订阅 tag"的成员(如 🇭🇰 香港节点)在填入机场订阅后自动匹配,
+;       同时保留 direct/reject 兜底, 保证策略组不为空。
+; 注意: 不要使用 `default = xxx` 键, 也不要额外写 [find-mainland] 等独立段,
+;       这些都不是 Quantumult X 合法语法, 会导致导入失败。
 ; ============================================================
-static = 节点订阅, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇸 美国节点, 🇸🇬 新加坡节点, 自动选择, 故障转移, DIRECT, REJECT
-static = AI 工具, 🤖 OpenAI, 🤖 Claude, 🤖 Gemini, 🇺🇸 美国节点, 自动选择, 故障转移
-static = 📺 流媒体, 🎬 YouTube, 📺 Netflix, 🎵 Spotify, 📺 Disney+, 🇺🇸 美国节点, 🇯🇵 日本节点, 自动选择, 故障转移
-static = 📱 国内 App, 🎯 国内直连, 节点订阅
-static = ⏱️ 自动测速, 🐱 自动选择(节点订阅)
-
-; 默认策略组 - 大多数流量走这条
-default = find-mainland
-
-[find-mainland]
-🇭🇰 香港节点, 🇯🇵 日本节点, 🇸🇬 新加坡节点, 🇺🇸 美国节点, 自动选择, 故障转移, 🎯 国内直连
+static = 节点选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇸 美国节点, 🇸🇬 新加坡节点, direct, reject
+static = 自动选择, 节点选择
+static = 国内直连, direct, reject
+static = 📺 Netflix, 节点选择
+static = 🎬 YouTube, 节点选择
 """
 
 SERVER_REMOTE_PLACEHOLDER = """[server_remote]
@@ -133,13 +116,13 @@ REWRITE_LOCAL = """[rewrite_local]
 """
 
 DNS = """[dns]
-dns-server = system, 223.5.5.5, 119.29.29.29, 1.1.1.1, 8.8.8.8
-dns-server = https://1.1.1.1/dns-query
-enable = true
-prefer-qtype = A, AAAA
-resolve-server = true
-use-hosts = true
-use-system-nameservers = true
+; Quantumult X [dns] 使用可重复的 server= 声明上游 DNS, 并发取最优
+server = system
+server = 223.5.5.5
+server = 119.29.29.29
+server = 119.28.28.28
+server = 1.1.1.1
+server = 8.8.8.8
 """
 
 SERVER_LOCAL = """[server_local]
@@ -336,9 +319,8 @@ def load_mitm_hostnames() -> list[str]:
 def build_mitm(hosts: list[str]) -> str:
     if not hosts:
         return "[mitm]\nhostname ="
-    # format: hostname = a.com, b.com, c.com
-    chunks = [", ".join(hosts[i:i + 10]) for i in range(0, len(hosts), 10)]
-    return "[mitm]\nenable = true\nhostname = " + ", \\\n  ".join(chunks)
+    # Quantumult X .conf 不支持反斜杠续行, hostname 必须放同一行
+    return "[mitm]\nenable = true\nhostname = " + ", ".join(hosts)
 
 
 # ---------- [task_local] ----------
