@@ -57,7 +57,7 @@ GENERAL = """[general]
 server_check_url = http://cp.cloudflare.com/generate_204
 server_check_timeout = 3000
 resource_parser_url = https://cdn.jsdelivr.net/gh/KOP-XIAO/QuantumultX@master/Scripts/resource-parser.js
-geo_location_checker = https://cdn.jsdelivr.net/gh/KOP-XIAO/QuantumultX@master/Scripts/geo_location_checker.js
+geo_location_checker = http://ip-api.com/json/?lang=zh-CN, https://cdn.jsdelivr.net/gh/KOP-XIAO/QuantumultX@master/Scripts/IP_API.js
 ; geoip_check_url = https://github.com/KOP-XIAO/QuantumultX/releases/download/resource/qqwry.dat
 
 ; ---- 以下均为 Quantumult X [general] 支持键 (对齐 KOP-XIAO 模板), 全部合法 ----
