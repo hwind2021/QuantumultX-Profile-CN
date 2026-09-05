@@ -46,12 +46,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "QuantumultX_Profiles.conf"
 
+# ---------- 本仓库自托管资源 ----------
+SELF_OWNER = "hwind2021"
+SELF_REPO = "QuantumultX-Profile-CN"
+SELF_BASE_JD = f"https://cdn.jsdelivr.net/gh/{SELF_OWNER}/{SELF_REPO}@main"
+
 # ============================================================
-# Koolson/Qure 图标 (专为 Quantumult X 设计的图标集)
-# https://github.com/Koolson/Qure  (IconSet/ 目录)
-# ⚠️ 必须用 jsdelivr 镜像, raw.githubusercontent.com 国内断流
+# 策略组图标: Qure 图标集 (https://github.com/Koolson/Qure, IconSet/ 目录)
+# 已固化到本仓库 icons/ 目录自托管 —— 与 conf 同源 (同一 jsdelivr 仓库),
+# 不再依赖 Koolson 仓库/raw 的可达性, 手机端加载成功率更高。
 # ============================================================
-QURE_ICON = "https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet"
+QURE_ICON = f"{SELF_BASE_JD}/icons"
 ICON_DAILY = f"{QURE_ICON}/Daily.png"          # 每日任务/签到
 ICON_ADBLACK = f"{QURE_ICON}/AdBlack.png"      # 去广告
 ICON_ADVERTISING = f"{QURE_ICON}/Advertising.png"  # 广告拦截
@@ -106,21 +111,21 @@ url-latency-benchmark = ⚡ 极速测速, server-tag-regex=^.*, check-interval=6
 static = 节点选择, ⚡ 极速测速, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇸 美国节点, 🇸🇬 新加坡节点, direct, reject, img-url=%(ICON_PROXY)s
 static = 📺 Netflix, 节点选择, img-url=%(ICON_NETFLIX)s
 static = 🎬 YouTube, 节点选择, img-url=%(ICON_YOUTUBE)s
-static = 国内直连, direct, reject, img-url=%(ICON_DOMESTIC)s
-; ---- 分流规则专属组 (与 [filter_remote] 的 force-policy 一一对应) ----
-; ⚠️ [filter_remote] 中不带 force-policy 的远程规则会让 QX 启动时"自动补齐"
-;    同名策略组(成员仅 direct/proxy/reject, 无图标、默认策略不合理)。
-;    此处显式定义接管, 组名必须与规则名一致:
-;    拦截类默认 reject(可临时切 direct 排查误伤), 国内类默认 direct, 国外类默认 节点选择。
+; ---- 拦截类: 默认 reject, 误伤时可临时切 direct 排查 ----
 static = Advertising, reject, direct, img-url=%(ICON_ADV)s
 static = Privacy, reject, direct, img-url=%(ICON_PRIVACY)s
 static = Hijacking, reject, direct, img-url=%(ICON_HIJACK)s
+; ---- 国外类: 默认走节点选择 ----
+static = Apple, direct, 节点选择, img-url=%(ICON_APPLE)s
 static = Global, 节点选择, direct, img-url=%(ICON_GLOBAL)s
 static = GlobalMedia, 节点选择, direct, img-url=%(ICON_GLOBALMEDIA)s
-static = Apple, direct, 节点选择, img-url=%(ICON_APPLE)s
 static = PrivateTracker, 节点选择, direct, img-url=%(ICON_PT)s
+; ---- 国内类: 默认 direct ----
 static = China, direct, 节点选择, img-url=%(ICON_CHINA)s
 static = ChinaMedia, direct, 节点选择, img-url=%(ICON_CHINAMEDIA)s
+static = ChinaASN, direct, 节点选择, img-url=%(ICON_CHINAASN)s
+static = ChinaIPs, direct, 节点选择, img-url=%(ICON_CHINAIPS)s
+static = 国内直连, direct, reject, img-url=%(ICON_DOMESTIC)s
 """ % {
     "ICON_HK": f"{QURE_ICON}/HK.png",
     "ICON_JP": f"{QURE_ICON}/JP.png",
@@ -129,16 +134,18 @@ static = ChinaMedia, direct, 节点选择, img-url=%(ICON_CHINAMEDIA)s
     "ICON_PROXY": f"{QURE_ICON}/Proxy.png",
     "ICON_NETFLIX": f"{QURE_ICON}/Netflix.png",
     "ICON_YOUTUBE": f"{QURE_ICON}/YouTube.png",
-    "ICON_DOMESTIC": f"{QURE_ICON}/Domestic.png",
     "ICON_ADV": f"{QURE_ICON}/Advertising.png",
     "ICON_PRIVACY": f"{QURE_ICON}/AdBlack.png",
     "ICON_HIJACK": f"{QURE_ICON}/Hijacking.png",
+    "ICON_APPLE": f"{QURE_ICON}/Apple.png",
     "ICON_GLOBAL": f"{QURE_ICON}/Global.png",
     "ICON_GLOBALMEDIA": f"{QURE_ICON}/GlobalMedia.png",
-    "ICON_APPLE": f"{QURE_ICON}/Apple.png",
     "ICON_PT": f"{QURE_ICON}/Download.png",
     "ICON_CHINA": f"{QURE_ICON}/China.png",
     "ICON_CHINAMEDIA": f"{QURE_ICON}/DomesticMedia.png",
+    "ICON_CHINAASN": f"{QURE_ICON}/China_Map.png",
+    "ICON_CHINAIPS": f"{QURE_ICON}/Direct.png",
+    "ICON_DOMESTIC": f"{QURE_ICON}/Domestic.png",
 }
 
 SERVER_REMOTE_PLACEHOLDER = """[server_remote]
@@ -280,8 +287,8 @@ BM_FILTER_PATHS = [
     ("rule/QuantumultX/Global/Global.list", "🌍 国外网站", "Global"),
     ("rule/QuantumultX/China/China.list", "🐼 国内网站", "China"),
     ("rule/QuantumultX/ChinaMedia/ChinaMedia.list", "📺 国内视频", "ChinaMedia"),
-    ("rule/QuantumultX/ChinaASN/ChinaASN.list", "🇨🇳 国内 ASN IP", "direct"),
-    ("rule/QuantumultX/ChinaIPs/ChinaIPs.list", "🇨🇳 国内 IP 池", "direct"),
+    ("rule/QuantumultX/ChinaASN/ChinaASN.list", "🇨🇳 国内 ASN IP", "ChinaASN"),
+    ("rule/QuantumultX/ChinaIPs/ChinaIPs.list", "🇨🇳 国内 IP 池", "ChinaIPs"),
 ]
 
 
@@ -328,9 +335,7 @@ BM_REWRITE_PATHS = [
 # ---------- 子资源本地化 ----------
 # 重写 conf 内部引用的 .js 子资源 (raw/gist 国内断流, DivineEngine 已 404),
 # 已固化到本仓库 scripts/ 目录, 引用统一走本仓库 jsdelivr, 消除"问题存在于子资源"。
-SELF_OWNER = "hwind2021"
-SELF_REPO = "QuantumultX-Profile-CN"
-SELF_BASE_JD = f"https://cdn.jsdelivr.net/gh/{SELF_OWNER}/{SELF_REPO}@main"
+# (SELF_OWNER/SELF_REPO/SELF_BASE_JD 已在文件头部定义)
 
 SCRIPT_URL_MAP = {
     # 上游(死链/断流) → 本仓库 scripts/ 文件名

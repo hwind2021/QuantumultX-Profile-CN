@@ -83,13 +83,14 @@ https://cdn.jsdelivr.net/gh/hwind2021/QuantumultX-Profile-CN@main/QuantumultX_Pr
 [mitm]                     # 168 个广告 SDK hostname（需开启 HTTPS 解密）
 ```
 
-## 🎨 图标美化（Koolson/Qure）
+## 🎨 图标美化（Koolson/Qure，已自托管）
 
-本配置内置了 [Koolson/Qure](https://github.com/Koolson/Qure) 图标集引用（任务脚本图标已全部替换）。
-如需**策略组也带图标**，在 Quantumult X 里一键订阅图标：
+本配置的**全部策略组与任务脚本图标已内置**（Qure 图标固化到本仓库 `icons/` 目录，与配置同源，不依赖外部仓库可达性），导入即显示，无需额外订阅。
+
+若想用更全的彩色/纯白图标订阅（可选）：
 
 1. 打开 Quantumult X → 右下角**风车** → **其他设置** → **图标**
-2. 图标订阅 URL 填入（彩色版，含 Netflix/YouTube/香港/日本等全部策略组图标）：
+2. 图标订阅 URL 填入（彩色版）：
 
 ```
 https://cdn.jsdelivr.net/gh/Koolson/Qure@master/Other/QureColor.json
