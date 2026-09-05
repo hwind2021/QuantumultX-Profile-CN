@@ -136,6 +136,15 @@ SERVER_REMOTE_PLACEHOLDER = """[server_remote]
 """
 
 FILTER_LOCAL = """[filter_local]
+; ==== 误伤修复白名单(本地规则优先于远程规则, 先于一切 REJECT 匹配) ====
+; 迅雷: blackmatrix7 Advertising.list 误杀登录接口 api-u-ssl/api-shoulei-ssl
+;       .xunlei.com → 登录一直失败, 整域直连修复
+host-suffix, xunlei.com, direct
+host-suffix, sandai.net, direct
+; QQ同步助手: blackmatrix7 Privacy.list 误杀 id6.me(腾讯统一账号验证服务),
+;   且同步 API 出境(走代理)时腾讯服务端判定境外 IP → 「该国家地区未开通服务」
+host-suffix, id6.me, direct
+host-suffix, sync.qq.com, direct
 host-suffix, local, direct
 host-suffix, lan, direct
 # 兜底规则: 此为必需规则, 不在上述所有规则(远程+本地)中的剩余请求走这条
@@ -302,6 +311,21 @@ SCRIPT_URL_MAP = {
     "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/script/smzdm/smzdm_remove_ads.js": "smzdm_remove_ads.js",
     "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/script/startup/startup.js": "startup.js",
     "https://raw.githubusercontent.com/DivineEngine/Profiles/master/Surge/Rewrite/bstar.js": "bstar.js",
+    # ---- App-Killers(启动页去广告合集)引用的脚本 ----
+    "https://github.com/ddgksf2013/Scripts/raw/master/12306.js": "12306.js",
+    "https://github.com/ddgksf2013/Scripts/raw/master/caixinads.js": "caixinads.js",
+    "https://github.com/ddgksf2013/Scripts/raw/master/coolapk.js": "coolapk.js",
+    "https://github.com/ddgksf2013/Scripts/raw/master/fly.js": "fly.js",
+    "https://github.com/ddgksf2013/Scripts/raw/master/jd_json.js": "jd_json.js",
+    "https://github.com/ddgksf2013/Scripts/raw/master/shunfeng_json.js": "shunfeng_json.js",
+    # 注意: ddgksf 的 startup.js 与 bm7 的同名但内容不同, 单独命名
+    "https://github.com/ddgksf2013/Scripts/raw/master/startup.js": "ddgksf-startup.js",
+    "https://github.com/ddgksf2013/Scripts/raw/master/stay.js": "stay.js",
+    "https://github.com/ddgksf2013/Scripts/raw/master/xiaohongshu.js": "xiaohongshu.js",
+    "https://raw.githubusercontent.com/NobyDa/Script/master/Bahamut/BahamutAnimeAds.js": "BahamutAnimeAds.js",
+    "https://raw.githubusercontent.com/deezertidal/private/master/js-backup/Script/xmly_json.js": "xmly_json.js",
+    "https://raw.githubusercontent.com/zZPiglet/Task/master/asset/UnblockURLinWeChat.js": "UnblockURLinWeChat.js",
+    "https://raw.githubusercontent.com/fmz200/wool_scripts/main/Scripts/cainiao/cainiao.js": "cainiao.js",
 }
 
 # 需要本地化的重写 conf: (上游 jsdelivr URL, 输出到本仓库 rewrite-local/ 的文件名)
@@ -330,6 +354,105 @@ def build_localized_rewrites() -> list[str]:
     return written
 
 
+# ---------- App-Killers: 启动页/App 专属去广告合并包 ----------
+# 来源(均为活跃维护仓库, 拉取时有快照缓存到 sources/ 供离线兜底):
+#   dee-startingad  : deezertidal/QuantumultX-Rewrite 通用启动页去广告(墨鱼维护, 200+ App,
+#                     含菜鸟/百度网盘/12306/京东/小红书等开屏拦截)
+#   fmz-cainiao     : fmz200/wool_scripts 菜鸟裹裹深度去广告(首页推广/角标/券)
+#   fmz-ximalaya    : fmz200/wool_scripts 喜马拉雅深度去广告(搜索广告/弹窗/直播角标)
+#   dee-xmlyad      : deezertidal 喜马拉雅开屏广告拦截(adse/adbehavior 域名 reject)
+#   fmz-baidunetdisk: fmz200/wool_scripts 百度网盘去广告(活动弹窗/福利页/广告 CDN)
+#   fmz-365calendar : fmz200/wool_scripts 365日历/万年历去广告
+APP_KILLER_SOURCES = [
+    ("https://cdn.jsdelivr.net/gh/deezertidal/QuantumultX-Rewrite@master/rewrite/startingad.conf", "dee-startingad"),
+    ("https://cdn.jsdelivr.net/gh/fmz200/wool_scripts@main/QuantumultX/rewrite/split/partC/CaiNiaoGuoGuo.snippet", "fmz-cainiao"),
+    ("https://cdn.jsdelivr.net/gh/fmz200/wool_scripts@main/QuantumultX/rewrite/split/partX/Ximalaya.snippet", "fmz-ximalaya"),
+    ("https://cdn.jsdelivr.net/gh/deezertidal/QuantumultX-Rewrite@master/rewrite/xmlyad.conf", "dee-xmlyad"),
+    ("https://cdn.jsdelivr.net/gh/fmz200/wool_scripts@main/QuantumultX/rewrite/split/partB/BaiduNetdisk.snippet", "fmz-baidunetdisk"),
+    ("https://cdn.jsdelivr.net/gh/fmz200/wool_scripts@main/QuantumultX/rewrite/split/part3/365Calendar.snippet", "fmz-365calendar"),
+]
+
+# dee-xmlyad 的通配 hostname (*.xima*.* / *.xmcdn.*) 规范化为 QX 常规写法
+APP_KILLER_HOST_EXTRA = ["*.ximalaya.com", "*.xmcdn.com"]
+
+
+def build_app_killers() -> str | None:
+    """合并多个上游去广告 snippet → rewrite-local/App-Killers.conf (js 全部本地化)。"""
+    outdir = ROOT / "rewrite-local"
+    outdir.mkdir(exist_ok=True)
+    srcdir = ROOT / "sources"
+    srcdir.mkdir(exist_ok=True)
+
+    hosts: list[str] = []
+    sections: list[tuple[str, list[str]]] = []
+    for url, label in APP_KILLER_SOURCES:
+        text = fetch_text(url)
+        if text is None:
+            cache = srcdir / f"{label}.conf"
+            if cache.exists():
+                text = cache.read_text(encoding="utf-8")
+                print(f"  - ⚠️ 上游拉取失败, 使用本地快照: {label}")
+            else:
+                print(f"  - ⚠️ 跳过(拉取失败且无快照): {label}")
+                continue
+        (srcdir / f"{label}.conf").write_text(text, encoding="utf-8")
+        # 先把全部断流 js 引用替换为本仓库 scripts/ 路径
+        for old, fname in SCRIPT_URL_MAP.items():
+            text = text.replace(old, f"{SELF_BASE_JD}/scripts/{fname}")
+        body: list[str] = []
+        for raw in text.splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#!"):
+                continue
+            low = line.lower()
+            if low.startswith("hostname"):
+                # snippet 末尾的 hostname 行: 收集合并, 不原样保留
+                val = line.split("=", 1)[1] if "=" in line else ""
+                if label != "dee-xmlyad":  # xmly 的通配符用规范化覆盖
+                    for h in val.replace(" ", ",").split(","):
+                        h = h.strip()
+                        if h and "example" not in h:
+                            hosts.append(h)
+                continue
+            if "this-is-an-example" in line:
+                continue  # fmz 365Calendar 里的占位行
+            body.append(line)
+        sections.append((label, body))
+    hosts.extend(APP_KILLER_HOST_EXTRA)
+
+    if not sections:
+        print("  - ⚠️ App-Killers 无可用来源, 保留已有文件")
+        return None
+
+    # hostname 去重保序
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for h in hosts:
+        if h.lower() not in seen:
+            seen.add(h.lower())
+            uniq.append(h)
+
+    header = "\n".join([
+        "; ============================================================",
+        "; App-Killers 启动页 + App 专属去广告合并包 (本地化版)",
+        f"; 由 build_conf.py 自动生成, 来源: {', '.join(l for l, _ in sections)}",
+        f"; 生成时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "; 内部引用的全部 .js 已固化到本仓库 scripts/ (jsdelivr 分发), 无断流子资源",
+        "; 覆盖: 菜鸟裹裹 / 喜马拉雅 / 百度网盘 / 365日历(万年历) 等 200+ App 启动页",
+        "; ⚠️ 部分规则生效需清除对应 App 缓存或重装后首次启动拦截",
+        "; ============================================================",
+        "",
+    ])
+    body = ""
+    for label, lines in sections:
+        body += f"; ---- {label} ----\n" + "\n".join(lines) + "\n\n"
+    mitm_line = "hostname = " + ", ".join(uniq)
+    out = header + body + mitm_line + "\n"
+    (outdir / "App-Killers.conf").write_text(out, encoding="utf-8")
+    print(f"  - App-Killers.conf 已生成: {len(sections)} 个来源, {len(uniq)} 个 MITM host")
+    return "App-Killers.conf"
+
+
 def fmt_rewrite_hw(path: str, tag: str) -> str:
     raw, _jd = dual_url(path, HW_OWNER, HW_REPO, HW_BRANCH)
     return f"{raw}, tag={tag}, update-interval=86400, opt-parser=false, enabled=true"
@@ -343,6 +466,12 @@ def fmt_rewrite_bm(path: str, tag: str) -> str:
 def build_rewrite_remote() -> str:
     lines = [
         "[rewrite_remote]",
+        "; === App-Killers 启动页+App 专属去广告 (本仓库本地化合并包) ===",
+        "; 菜鸟裹裹 / 喜马拉雅 / 百度网盘 / 365日历(万年历) 等开屏与内置广告,",
+        "; 合并自 deezertidal(墨鱼) 与 fmz200 两个活跃规则库, 内部 .js 全部本地化",
+        "",
+        f"{SELF_BASE_JD}/rewrite-local/App-Killers.conf, tag=🚀 启动页去广告(菜鸟/喜马/网盘/万年历), update-interval=86400, opt-parser=false, enabled=true",
+        "",
         "; === hwind2021/QuantumultX-AdBlock-CN 国内化重写规则 ===",
         f"; 仓库: https://github.com/{HW_OWNER}/{HW_REPO}",
         "; Splash: 针对国内 App 开屏广告 SDK 重写 (pangolin / snssdk / gdt)",
@@ -448,6 +577,7 @@ def main() -> int:
 
     print(f"[3/5] 构造 [rewrite_remote] ({len(HW_REWRITE_PATHS) + len(BM_REWRITE_PATHS)} 条) ...")
     build_localized_rewrites()  # 先本地化含断流子资源的重写 conf
+    build_app_killers()  # 生成启动页/App 专属去广告合并包
     sec_rewrite = build_rewrite_remote()
 
     print(f"[4/5] 构造 [task_local] ...")

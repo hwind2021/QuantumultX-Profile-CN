@@ -114,13 +114,39 @@ https://cdn.jsdelivr.net/gh/Koolson/Qure@master/Other/Quremini.json
 使用方式：主界面 → 策略 → **节点选择** → 切到 **⚡ 极速测速** 即可。
 依赖 `[general]` 的 `server_check_url`（已配置为 `cp.cloudflare.com/generate_204`，无需修改）。
 
+## 🚀 启动页去广告（菜鸟 / 喜马拉雅 / 百度网盘 / 万年历 等）
+
+配置内置 **App-Killers 合并重写包**（`rewrite-local/App-Killers.conf`），合并自两个活跃维护的规则库并全部本地化（内部 13 个 .js 脚本固化在本仓库 `scripts/`，无断流子资源）：
+
+| App | 覆盖内容 |
+|---|---|
+| 菜鸟裹裹 | 开屏拦截 + 首页推广/角标/裹裹券（fmz200 深度规则 + 墨鱼启动页） |
+| 喜马拉雅 | 开屏广告域 reject + 搜索热词/弹窗/直播角标/首页广告（fmz200 + 墨鱼） |
+| 百度网盘 | 活动弹窗/福利页/广告 CDN/开屏（fmz200 + 墨鱼） |
+| 365日历(万年历) | 广告域拦截（fmz200） |
+| 另含 200+ 国内 App | 12306/京东/小红书/美团/拼多多/58 等启动页（墨鱼 startingad） |
+
+> ⚠️ 部分规则首次生效需**清除对应 App 的缓存**（或卸载重装后首次启动时拦截），App 会缓存已下载的广告素材。
+
+## 🛡️ 误伤修复白名单（迅雷 / QQ同步助手）
+
+`[filter_local]` 顶部内置直连白名单（本地规则优先于远程 REJECT）：
+
+| 域名 | 原因 |
+|---|---|
+| `xunlei.com` / `sandai.net` | blackmatrix7 Advertising 误杀迅雷登录接口 `api-u-ssl.xunlei.com` → 登录失败 |
+| `id6.me` | blackmatrix7 Privacy 误杀腾讯统一账号验证服务（QQ同步助手登录用） |
+| `sync.qq.com` | QQ同步助手 API 出境（走代理）时腾讯判定境外 IP → 「该国家地区未开通服务」 |
+
+> ⚠️ QX 需使用**规则分流**模式。若切到「全部代理」模式，QQ同步助手等国产 App 仍会判定境外 IP。
+
 ## 🔗 集成的资源
 
 | 段位 | 来源 | 数量 | 说明 |
 |---|---|---|---|
 | `[filter_remote]` | hwind2021 + blackmatrix7 | 20 条 | 国内精准 + 海外兜底 |
-| `[rewrite_remote]` | hwind2021 + blackmatrix7 | 7 条 | All/Feed/Splash/Script/Upgrade 等 |
-| `[mitm]` | hwind2021 | 168 域名 | 广告 SDK 与开屏追踪 |
+| `[rewrite_remote]` | hwind2021 + blackmatrix7 + deezertidal + fmz200 | 8 条 | 含 App-Killers 本地化合并包 |
+| `[mitm]` | hwind2021 + App-Killers | 168 + 250 域名 | 广告 SDK 与开屏追踪 |
 | `[task_local]` | hwind2021 + 自有 | 多条 | 每日自动拉取 .js 脚本 |
 
 完整来源清单见 [docs/sources.md](docs/sources.md)。
