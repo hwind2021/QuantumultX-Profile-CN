@@ -83,6 +83,37 @@ https://cdn.jsdelivr.net/gh/hwind2021/QuantumultX-Profile-CN@main/QuantumultX_Pr
 [mitm]                     # 168 个广告 SDK hostname（需开启 HTTPS 解密）
 ```
 
+## 🎨 图标美化（Koolson/Qure）
+
+本配置内置了 [Koolson/Qure](https://github.com/Koolson/Qure) 图标集引用（任务脚本图标已全部替换）。
+如需**策略组也带图标**，在 Quantumult X 里一键订阅图标：
+
+1. 打开 Quantumult X → 右下角**风车** → **其他设置** → **图标**
+2. 图标订阅 URL 填入（彩色版，含 Netflix/YouTube/香港/日本等全部策略组图标）：
+
+```
+https://cdn.jsdelivr.net/gh/Koolson/Qure@master/Other/QureColor.json
+```
+
+纯白极简版（PROXY 订阅推荐）：
+
+```
+https://cdn.jsdelivr.net/gh/Koolson/Qure@master/Other/Quremini.json
+```
+
+## ⚡ 定时自动测速（选最快节点）
+
+配置内置策略组 **⚡ 极速测速**（`url-latency-benchmark` 类型），填入机场订阅后自动生效：
+
+| 参数 | 值 | 说明 |
+|---|---|---|
+| `check-interval` | 600 秒 | 每 10 分钟自动测速一轮 |
+| `alive-checking` | true | **空闲时也定时测速**（核心参数，关掉就变成"有流量才测"） |
+| `tolerance` | 0 | 发现更快节点立即切换；想防抖可改成 100 |
+
+使用方式：主界面 → 策略 → **节点选择** → 切到 **⚡ 极速测速** 即可。
+依赖 `[general]` 的 `server_check_url`（已配置为 `cp.cloudflare.com/generate_204`，无需修改）。
+
 ## 🔗 集成的资源
 
 | 段位 | 来源 | 数量 | 说明 |

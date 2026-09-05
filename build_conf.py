@@ -76,17 +76,24 @@ icmp_auto_reply = true
 
 POLICY_GROUPS = """[policy]
 ; ============================================================
-; 策略组 - 全部为 static 类型
+; 策略组 - static 手动选择 + url-latency-benchmark 定时自动测速
 ; 说明: 引用"节点订阅 tag"的成员(如 🇭🇰 香港节点)在填入机场订阅后自动匹配,
 ;       同时保留 direct/reject 兜底, 保证策略组不为空。
 ; 注意: 不要使用 `default = xxx` 键, 也不要额外写 [find-mainland] 等独立段,
 ;       这些都不是 Quantumult X 合法语法, 会导致导入失败。
+;
+; ⚡ 极速测速 (url-latency-benchmark) - 定时自动测速选最快节点:
+;   check-interval=600   每 600 秒(10 分钟)测速一次
+;   alive-checking=true  即使策略空闲(无流量经过)也按间隔持续测速 ← 定时核心参数
+;   tolerance=0          只要发现延迟更低的节点就立即切换(可调大如 100 防频繁切换)
+;   server-tag-regex=^.* 匹配所有订阅节点; 若你修改了订阅 tag, 无需改这里
+;   依赖 [general] 的 server_check_url / server_check_timeout (已配置)
 ; ============================================================
-static = 节点选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇸 美国节点, 🇸🇬 新加坡节点, direct, reject
-static = 自动选择, 节点选择
-static = 国内直连, direct, reject
+static = 节点选择, ⚡ 极速测速, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇸 美国节点, 🇸🇬 新加坡节点, direct, reject
+url-latency-benchmark = ⚡ 极速测速, server-tag-regex=^.*, check-interval=600, alive-checking=true, tolerance=0
 static = 📺 Netflix, 节点选择
 static = 🎬 YouTube, 节点选择
+static = 国内直连, direct, reject
 """
 
 SERVER_REMOTE_PLACEHOLDER = """[server_remote]
@@ -132,12 +139,22 @@ SERVER_LOCAL = """[server_local]
 ; 在这里填手动配置的本地节点（一般用不到）
 """
 
+# ============================================================
+# Koolson/Qure 图标 (专为 Quantumult X 设计的图标集, MIT 转载需注明出处)
+# https://github.com/Koolson/Qure  (IconSet/ 目录)
+# ⚠️ 必须用 jsdelivr 镜像, raw.githubusercontent.com 国内断流
+# ============================================================
+QURE_ICON = "https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet"
+ICON_DAILY = f"{QURE_ICON}/Daily.png"          # 每日任务/签到
+ICON_ADBLACK = f"{QURE_ICON}/AdBlack.png"      # 去广告
+ICON_ADVERTISING = f"{QURE_ICON}/Advertising.png"  # 广告拦截
+
 TASK_LOCAL_BASE = """[task_local]
 ; ============================================================
-; KOP-XIAO 模板自带的常用签到脚本
+; KOP-XIAO 模板自带的常用签到脚本 (图标: Koolson/Qure)
 ; ============================================================
-0 9 * * * https://raw.githubusercontent.com/chavyleung/scripts/master/chavyoleckey/quantumultx/chavyoleckey.qx.js, tag=ℹ️ 获取 Cookie, img-url=system://notification, enabled=false
-"""
+0 9 * * * https://raw.githubusercontent.com/chavyleung/scripts/master/chavyoleckey/quantumultx/chavyoleckey.qx.js, tag=ℹ️ 获取 Cookie, img-url=%(ICON_DAILY)s, enabled=false
+""" % {"ICON_DAILY": ICON_DAILY}
 
 # ===========================================================================
 # 动态内容 - 来自上游仓库的规则
@@ -196,21 +213,27 @@ HW_FILTER_PATHS = [
 ]
 
 BM_FILTER_PATHS = [
+    # —— 排布原则 (QX 规则自上而下首条命中即生效): 专项/精确在前, 宽泛/兜底在后 ——
+    # 1) 拦截类(REJECT)最优先, 防止被后面的宽泛规则截胡漏杀
+    # 2) force-policy 专项组(Netflix/YouTube)必须排在 GlobalMedia 之前,
+    #    否则泛流媒体规则先命中导致 force-policy 失效
+    # 3) Apple/Direct 等直连专项排在 Global 之前, 保证苹果等域名可直连
+    # 4) IP 级宽泛规则(ChinaASN/ChinaIPs)放最后兜底
     ("rule/QuantumultX/Advertising/Advertising.list", "⛔ 去广告(全量)", None),
     ("rule/QuantumultX/Privacy/Privacy.list", "🛡️ 隐私追踪拦截", None),
     ("rule/QuantumultX/Hijacking/Hijacking.list", "🚫 运营商劫持", None),
     ("rule/QuantumultX/Proxy/Proxy.list", "🌐 代理域名", None),
-    ("rule/QuantumultX/Direct/Direct.list", "🎯 直连域名", None),
-    ("rule/QuantumultX/Global/Global.list", "🌍 国外网站", None),
+    ("rule/QuantumultX/Netflix/Netflix.list", "📺 Netflix", "📺 Netflix"),
+    ("rule/QuantumultX/YouTube/YouTube.list", "🎬 YouTube", "🎬 YouTube"),
     ("rule/QuantumultX/GlobalMedia/GlobalMedia.list", "🎬 国外流媒体", None),
+    ("rule/QuantumultX/Apple/Apple.list", "🍎 Apple 服务", None),
+    ("rule/QuantumultX/Direct/Direct.list", "🎯 直连域名", None),
     ("rule/QuantumultX/PrivateTracker/PrivateTracker.list", "🔒 BT/PT 资源", None),
+    ("rule/QuantumultX/Global/Global.list", "🌍 国外网站", None),
     ("rule/QuantumultX/China/China.list", "🐼 国内网站", None),
     ("rule/QuantumultX/ChinaMedia/ChinaMedia.list", "📺 国内视频", None),
     ("rule/QuantumultX/ChinaASN/ChinaASN.list", "🇨🇳 国内 ASN IP", None),
     ("rule/QuantumultX/ChinaIPs/ChinaIPs.list", "🇨🇳 国内 IP 池", None),
-    ("rule/QuantumultX/Apple/Apple.list", "🍎 Apple 服务", None),
-    ("rule/QuantumultX/Netflix/Netflix.list", "📺 Netflix", "📺 Netflix"),
-    ("rule/QuantumultX/YouTube/YouTube.list", "🎬 YouTube", "🎬 YouTube"),
 ]
 
 
@@ -334,8 +357,8 @@ def build_task_local() -> str:
         "; ============================================================",
         f"; 每日自动更新 hwind2021/{HW_REPO} 的脚本",
         "; ============================================================",
-        f"0 4 * * * {HW_BASE_RAW}/quantumultx/script/splash-killer.js, tag=🔄 更新·开屏去广告脚本, img-url=system://stopwatch, enabled=true",
-        f"0 4 * * * {HW_BASE_RAW}/quantumultx/script/feed-killer.js, tag=🔄 更新·信息流去广告脚本, img-url=system://stopwatch, enabled=true",
+        f"0 4 * * * {HW_BASE_RAW}/quantumultx/script/splash-killer.js, tag=🔄 更新·开屏去广告脚本, img-url={ICON_ADBLACK}, enabled=true",
+        f"0 4 * * * {HW_BASE_RAW}/quantumultx/script/feed-killer.js, tag=🔄 更新·信息流去广告脚本, img-url={ICON_ADVERTISING}, enabled=true",
         "",
     ]
     return "\n".join(lines)
