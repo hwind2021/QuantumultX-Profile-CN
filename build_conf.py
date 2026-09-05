@@ -109,6 +109,9 @@ SERVER_REMOTE_PLACEHOLDER = """[server_remote]
 FILTER_LOCAL = """[filter_local]
 host-suffix, local, direct
 host-suffix, lan, direct
+# 兜底规则: 此为必需规则, 不在上述所有规则(远程+本地)中的剩余请求走这条
+# 仅可修改对应策略组, 请勿删除 final
+final, 节点选择
 """
 
 REWRITE_LOCAL = """[rewrite_local]
@@ -320,7 +323,7 @@ def build_mitm(hosts: list[str]) -> str:
     if not hosts:
         return "[mitm]\nhostname ="
     # Quantumult X .conf 不支持反斜杠续行, hostname 必须放同一行
-    return "[mitm]\nenable = true\nhostname = " + ", ".join(hosts)
+    return "[mitm]\nhostname = " + ", ".join(hosts)
 
 
 # ---------- [task_local] ----------
