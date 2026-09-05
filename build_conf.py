@@ -53,10 +53,11 @@ SELF_BASE_JD = f"https://cdn.jsdelivr.net/gh/{SELF_OWNER}/{SELF_REPO}@main"
 
 # ============================================================
 # 策略组图标: Qure 图标集 (https://github.com/Koolson/Qure, IconSet/ 目录)
-# 已固化到本仓库 icons/ 目录自托管 —— 与 conf 同源 (同一 jsdelivr 仓库),
-# 不再依赖 Koolson 仓库/raw 的可达性, 手机端加载成功率更高。
+# 已固化到本仓库 icons/ 目录自托管, 走 raw.githubusercontent.com 直链:
+# 图标只在打开策略组面板时才异步加载, 此时 QX 必然已启动且挂有代理节点,
+# GitHub 直链可正常访问, 无需经过 jsdelivr 中转。
 # ============================================================
-QURE_ICON = f"{SELF_BASE_JD}/icons"
+QURE_ICON = f"https://raw.githubusercontent.com/{SELF_OWNER}/{SELF_REPO}/main/icons"
 ICON_DAILY = f"{QURE_ICON}/Daily.png"          # 每日任务/签到
 ICON_ADBLACK = f"{QURE_ICON}/AdBlack.png"      # 去广告
 ICON_ADVERTISING = f"{QURE_ICON}/Advertising.png"  # 广告拦截
@@ -306,6 +307,11 @@ def build_filter_remote() -> str:
     for path, tag, fp in HW_FILTER_PATHS:
         lines.append(fmt_filter_hw(path, tag, fp))
     lines.extend([
+        "",
+        "; === 广告 SDK 兜底拦截 (自建, 穿山甲/优量汇/快手联盟等备用域名) ===",
+        "; 主域名被拦后 SDK 会切备用域名重新拉广告并缓存, 杀掉重启后直接展示缓存素材",
+        "; (不走网络, 规则拦不到) —— 此列表堵死备用域名, 让 SDK 永远拉不到新广告",
+        f"{SELF_BASE_JD}/filter/AdSDK-Fallback.list, tag=🧱 广告SDK兜底, update-interval=86400, opt-parser=false, enabled=true, force-policy=Advertising",
         "",
         "; === 以下 blackmatrix7/ios_rule_script 作为综合分流补充 ===",
         "; 优先级低于 hwind2021, 命中 hwind2021 的规则就会短路返回",

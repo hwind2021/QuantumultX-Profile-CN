@@ -1,0 +1,33 @@
+# ============================================================
+# 广告 SDK 兜底拦截 (自建, 建议置顶启用)
+# 原理: 穿山甲/优量汇/快手联盟等广告 SDK 在主域名被拦截后会切换
+#       备用域名重新拉取广告并写入本地缓存(下次启动直接展示,
+#       不走网络, 规则无法拦截) —— 补齐备用域名让 SDK 永远拉不到新广告。
+# ⚠️ 以下域名均为广告 SDK 专用域(素材/接口), 拦截不影响任何 App 正常功能;
+#    刻意不收录 zjcdn.com / isnssdk.com / snssdk.com / bdstatic.com 等
+#    与正常业务混用的域名(会弄坏抖音/头条/百度系 App)。
+# ============================================================
+
+# ---- 穿山甲 CSJ (字节系, 菜鸟/万年历等大量国产 App 使用) ----
+host-suffix, pangolin-sdk-toutiao.com, REJECT
+host-suffix, pglstatp-toutiao.com, REJECT
+host-suffix, csjplatform.com, REJECT
+host-suffix, oceanengine.com, REJECT
+host-suffix, pangolin-sdk-toutiaozj.com, REJECT
+
+# ---- 优量汇 GDT (腾讯系) ----
+host-suffix, gdt.qq.com, REJECT
+host-suffix, gdtimg.com, REJECT
+
+# ---- 快手联盟 (磁力引擎) ----
+host-suffix, ayximgs.com, REJECT
+
+# ---- Sigmob / TopOn / 其他聚合 SDK ----
+host-suffix, sigmob.com, REJECT
+host-suffix, sigmob.cn, REJECT
+host-suffix, anythinktech.com, REJECT
+host-suffix, cmgadx.com, REJECT
+
+# ---- 百度百青藤 (移动端广告接口专用域) ----
+host-suffix, mobads.baidu.com, REJECT
+host-suffix, mobads.cn, REJECT
