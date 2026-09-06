@@ -25,6 +25,12 @@ env/
 # Logs
 *.log
 
+# Agent 涓棿浜х墿 / 鏈湴涓存椂鐩綍
+.temp/
+
 # Test artifacts
 test/
 _verify/
+
+# 本地同步基线记录（工具产物）
+.last_commit_sha

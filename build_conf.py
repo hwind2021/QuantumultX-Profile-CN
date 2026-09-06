@@ -168,17 +168,21 @@ SERVER_REMOTE_PLACEHOLDER = """[server_remote]
 
 FILTER_LOCAL = """[filter_local]
 ; ==== 误伤修复白名单(本地规则优先于远程规则, 先于一切 REJECT 匹配) ====
-; 迅雷: blackmatrix7 Advertising.list 误杀登录接口 api-u-ssl/api-shoulei-ssl
-;       .xunlei.com → 登录一直失败, 整域直连修复
-host-suffix, xunlei.com, direct
-host-suffix, sandai.net, direct
-; QQ同步助手: blackmatrix7 Privacy.list 误杀 id6.me(腾讯统一账号验证服务),
-;   且同步 API 出境(走代理)时腾讯服务端判定境外 IP → 「该国家地区未开通服务」
-host-suffix, id6.me, direct
-host-suffix, sync.qq.com, direct
+; 迅雷: 原先整域直连(xunlei.com/sandai.net)导致远程广告 REJECT 全部短路 ——
+;       2026-09 改为只放行登录/业务接口, 广告域(adsp/xlmc/ct.niu 等)仍可被拦截:
+;         api-u-ssl.xunlei.com      登录接口(blackmatrix7 误杀对象)
+;         api-shoulei-ssl.xunlei.com 业务接口(与广告 slots 接口同域, 见下)
+; ⚠️ api-shoulei-ssl 同域下既有广告接口(/flowhub/v*/slots:batchGet)也有正常
+;    业务接口, 已由 App-Killers 的 URL 级重写规则精确拦截广告路径,
+;    不再需要整域直连; 若迅雷登录再次异常, 可临时取消下三行注释回退。
+host, api-u-ssl.xunlei.com, direct
+host, api-shoulei-ssl.xunlei.com, direct
+host, hub5emu.wap.sandai.net, direct
+host, id6.me, direct
+host, sync.qq.com, direct
 host-suffix, local, direct
 host-suffix, lan, direct
-# 兜底规则: 此为必需规则, 不在上述所有规则(远程+本地)中的剩余请求走这条
+# 兑底规则: 此为必需规则, 不在上述所有规则(远程+本地)中的剩余请求走这条
 # 仅可修改对应策略组, 请勿删除 final
 final, 节点选择
 """
@@ -364,6 +368,8 @@ SCRIPT_URL_MAP = {
     "https://raw.githubusercontent.com/deezertidal/private/master/js-backup/Script/xmly_json.js": "xmly_json.js",
     "https://raw.githubusercontent.com/zZPiglet/Task/master/asset/UnblockURLinWeChat.js": "UnblockURLinWeChat.js",
     "https://raw.githubusercontent.com/fmz200/wool_scripts/main/Scripts/cainiao/cainiao.js": "cainiao.js",
+    # ---- 闲鱼(goofish) 专属脚本 (ishowshu/qx, 树先生维护) ----
+    "https://raw.githubusercontent.com/ishowshu/qx/refs/heads/main/script/goofish.js": "goofish.js",
 }
 
 # 需要本地化的重写 conf: (上游 jsdelivr URL, 输出到本仓库 rewrite-local/ 的文件名)
@@ -393,7 +399,7 @@ def build_localized_rewrites() -> list[str]:
 
 
 # ---------- App-Killers: 启动页/App 专属去广告合并包 ----------
-# 来源(均为活跃维护仓库, 拉取时有快照缓存到 sources/ 供离线兜底):
+# 来源(均为活跃维护仓库, 拉取时有快照缓存到 sources/ 供离线兑底):
 #   dee-startingad  : deezertidal/QuantumultX-Rewrite 通用启动页去广告(墨鱼维护, 200+ App,
 #                     含菜鸟/百度网盘/12306/京东/小红书等开屏拦截)
 #   fmz-cainiao     : fmz200/wool_scripts 菜鸟裹裹深度去广告(首页推广/角标/券)
@@ -401,6 +407,10 @@ def build_localized_rewrites() -> list[str]:
 #   dee-xmlyad      : deezertidal 喜马拉雅开屏广告拦截(adse/adbehavior 域名 reject)
 #   fmz-baidunetdisk: fmz200/wool_scripts 百度网盘去广告(活动弹窗/福利页/广告 CDN)
 #   fmz-365calendar : fmz200/wool_scripts 365日历/万年历去广告
+#   fmz-xianyu      : fmz200/wool_scripts 闲鱼深度去广告(开屏 splash.ads/信息流/搜索推荐,
+#                     2026-09 补齐: 闲鱼此前完全无规则, 开屏拦不住的直接原因)
+#   fmz-thunder     : fmz200/wool_scripts 迅雷去广告(adsp/xlmc 域名 reject + advert 素材链
+#                     reject-200, 2026-09 补齐: 配合下方迅雷白名单改精确放行)
 APP_KILLER_SOURCES = [
     ("https://cdn.jsdelivr.net/gh/deezertidal/QuantumultX-Rewrite@master/rewrite/startingad.conf", "dee-startingad"),
     ("https://cdn.jsdelivr.net/gh/fmz200/wool_scripts@main/QuantumultX/rewrite/split/partC/CaiNiaoGuoGuo.snippet", "fmz-cainiao"),
@@ -408,10 +418,109 @@ APP_KILLER_SOURCES = [
     ("https://cdn.jsdelivr.net/gh/deezertidal/QuantumultX-Rewrite@master/rewrite/xmlyad.conf", "dee-xmlyad"),
     ("https://cdn.jsdelivr.net/gh/fmz200/wool_scripts@main/QuantumultX/rewrite/split/partB/BaiduNetdisk.snippet", "fmz-baidunetdisk"),
     ("https://cdn.jsdelivr.net/gh/fmz200/wool_scripts@main/QuantumultX/rewrite/split/part3/365Calendar.snippet", "fmz-365calendar"),
+    ("https://cdn.jsdelivr.net/gh/fmz200/wool_scripts@main/QuantumultX/rewrite/split/partX/XianYu.snippet", "fmz-xianyu"),
+    ("https://cdn.jsdelivr.net/gh/fmz200/wool_scripts@main/QuantumultX/rewrite/split/partT/Thunder.snippet", "fmz-thunder"),
 ]
 
 # dee-xmlyad 的通配 hostname (*.xima*.* / *.xmcdn.*) 规范化为 QX 常规写法
 APP_KILLER_HOST_EXTRA = ["*.ximalaya.com", "*.xmcdn.com"]
+
+# 闲鱼/迅雷关键重写域强制保底(2026-09 补齐):
+# XianYu.snippet 的 hostname 行只有 acs.m.goofish.com / g-acs.m.goofish.com,
+# Thunder.snippet 的 hostname 行只有 images.client.vip.xunlei.com /
+# api-shoulei-ssl.xunlei.com —— 若上游行被误过滤/缺失, 重写规则将形同虚设。
+APP_KILLER_HOST_FORCE = [
+    "acs.m.goofish.com", "g-acs.m.goofish.com",
+    "images.client.vip.xunlei.com", "api-shoulei-ssl.xunlei.com",
+]
+
+# QX [rewrite_local] 仅支持官方 18 种重写类型; 上游片段(Surge/Loon 风格)混入的
+# host/host-suffix 规则行、url-and-header、jsonjq-response-body 等会导致
+# QX 报「配置语法错误」无法添加, 必须净化。
+_QX_UNSUP_TYPES = (
+    "jsonjq-response-body", "mock-response-body", "mock-request-body",
+    "response-body-json-del", "response-body-json-add",
+    "script-event", "http-response", "http-request",
+)
+
+
+def sanitize_qx_rewrite_line(line: str, hosts: list[str]) -> list[str]:
+    """把上游片段里 QX 不认的重写语法净化为合法 QX 重写; 返回 0~2 行。
+
+    - host / host-suffix / host-keyword 规则行 → 等价 URL 正则 reject
+      (host 域名同时追加进 MITM hostname, 否则 HTTPS 下拦不到)
+    - `pattern header url-and-header reject` → 丢弃 header 部分, 保留 URL reject
+    - jsonjq-response-body 等私货类型 → 注释保留原文(QX 无 jq 引擎, 无法等价转换)
+    """
+    s = line.strip()
+    if not s or s.startswith("#") or s.startswith(";"):
+        return [line]
+    low = s.lower()
+    if low.startswith(("host,", "host-suffix,", "host-keyword,")):
+        parts = [p.strip() for p in s.split(",")]
+        if len(parts) == 3 and parts[2].lower() in ("reject", "reject-200"):
+            host = parts[1]
+            esc = host.replace(".", r"\.")
+            if low.startswith("host,"):  # 精确域名
+                hosts.append(host)
+                return [f"^https?:\\/\\/{esc}(\\/|$) url reject"]
+            # host-suffix / host-keyword: 前缀任选子域 (零次亦匹配裸域)
+            hosts.append(host)
+            return [f"^https?:\\/\\/([^.]+\\.)*{esc} url reject"]
+        return ["# [QX不支持已移除] " + s]
+    if " url-and-header " in low or low.endswith(" url-and-header reject"):
+        # Surge 模块语法: 第 1 个 token 是 URL 正则, 其后是 header 正则 → 只留 URL
+        head = s.split(" url-and-header", 1)[0].strip().split()
+        if head:
+            return [head[0] + " url reject"]
+        return ["# [QX不支持已移除] " + s]
+    for bad in _QX_UNSUP_TYPES:
+        if f" {bad} " in low or low.endswith(" " + bad):
+            return ["# [QX不支持已注释] " + s]
+    return [line]
+
+
+# ---------- 共享 SDK / 共享 CDN 治理 ----------
+# 教训: 对共享 SDK 接口整段 url reject 会挂起部分App(如穿山甲 init 拖死迅雷登录),
+# 对共享 CDN 域做 MitM 会触发闲鱼/百度系等证书校验失败。
+# SDK 级广告由 [filter_remote] 的 AdSDK-Fallback.list 兜底(可切 direct 排查),
+# 重写只保留 App 自有 API 域上的规则 —— 域名也同步从 MITM hostname 剔除。
+_AK_RULE_DROP = (
+    "pangolin-sdk-toutiao",            # 穿山甲 SDK 接口
+    "open.e.kuaishou.com",             # 快手联盟 SDK
+    "mi.gdt.qq.com",                   # 优量汇 SDK
+    "zconfig.alibabausercontent.com",  # 阿里系远程配置(弄坏闲鱼/淘宝系)
+    "alicdn.com",                      # 阿里共享 CDN(证书校验)
+    "bdstatic.com",                    # 百度共享 CDN
+    "bcebos.com", "baidupcs.com",      # 百度云共享 CDN
+    "hpplay.cn",                       # 乐播投屏 SDK
+    "beacon.qq.com",                   # 腾讯分析 SDK
+    "/amdc/",                          # 阿里 HTTPDNS 调度(泛域名, 弄坏闲鱼等)
+)
+# 豁免来源: fmz-xianyu 源的 amdc 规则带闲鱼标识过滤(仅拦闲鱼 App 自己的
+# 广告下发请求, 明文 http, 正则里含闲鱼 app 标识), 与黑名单里泛域名
+# amdc.m.taobao.com 不同, 按来源豁免不误伤其他源。
+_AK_RULE_DROP_EXEMPT_SOURCES = ("fmz-xianyu",)
+_AK_HOST_DROP = (
+    "g.alicdn.com", "gw.alicdn.com", "*.bdstatic.com",
+    "zconfig.alibabausercontent.com",
+    "ndstatic.cdn.bcebos.com", "staticsns.cdn.bcebos.com",
+    "issuecdn.baidupcs.com", "fc-video.cdn.bcebos.com",
+    "rp.hpplay.cn", "otheve.beacon.qq.com",
+    "interface*.music.163.com",        # 对应规则上游已注释, hostname 无效
+    "open.e.kuaishou.com", "mi.gdt.qq.com",           # SDK 接口(规则已剔除)
+    "api-access.pangolin-sdk-toutiao.com",
+    "amdc.m.taobao.com",               # HTTPDNS 调度(规则已剔除)
+    "afd.baidu.com",                   # 无对应规则的孤儿 hostname
+)
+# QX hostname 通配符只支持 `*.domain` 形态, 规范化上游的变体写法
+_AK_HOST_FIX = {
+    "*gaoqingdianshi.com": "*.gaoqingdianshi.com",
+    "cdn.*.chelaileapp.cn": "*.chelaileapp.cn",
+    "mage*.if.qidian.com": "*.if.qidian.com",
+    "capis*.didapinche.com": "capis.didapinche.com",
+    "p*.meituan.net": "*.meituan.net",
+}
 
 
 def build_app_killers() -> str | None:
@@ -454,9 +563,33 @@ def build_app_killers() -> str | None:
                 continue
             if "this-is-an-example" in line:
                 continue  # fmz 365Calendar 里的占位行
-            body.append(line)
+            body.extend(sanitize_qx_rewrite_line(line, hosts))
+        # 共享 SDK / CDN 域上的规则整条剔除(理由见 _AK_RULE_DROP 注释)
+        # 注意规则里点号是正则转义 `\.`, 先去掉反斜杠再匹配字面域名;
+        # fmz-xianyu 源豁免(闲鱼 amdc 规则带 app 标识, 非泛域名拦截)
+        if label in _AK_RULE_DROP_EXEMPT_SOURCES:
+            pass  # 该源不剔除, 全量保留
+        else:
+            body = [ln for ln in body
+                    if ln.startswith(("#", ";"))
+                    or not any(p in ln.lower().replace("\\", "") for p in _AK_RULE_DROP)]
         sections.append((label, body))
     hosts.extend(APP_KILLER_HOST_EXTRA)
+    hosts.extend(APP_KILLER_HOST_FORCE)
+
+    # MITM hostname 治理: 裸 IP 无法 MitM, 共享 CDN 域证书校验风险, 通配符规范化
+    fixed: list[str] = []
+    for h in hosts:
+        h2 = _AK_HOST_FIX.get(h.lower(), h)
+        hl = h2.lower()
+        if hl in _AK_HOST_DROP:
+            continue
+        parts = hl.split(".")
+        if len(parts) == 4 and all(p.isdigit() for p in parts):
+            continue  # 裸 IP
+        if h2 not in fixed:
+            fixed.append(h2)
+    hosts = fixed
 
     if not sections:
         print("  - ⚠️ App-Killers 无可用来源, 保留已有文件")
@@ -476,7 +609,7 @@ def build_app_killers() -> str | None:
         f"; 由 build_conf.py 自动生成, 来源: {', '.join(l for l, _ in sections)}",
         f"; 生成时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "; 内部引用的全部 .js 已固化到本仓库 scripts/ (jsdelivr 分发), 无断流子资源",
-        "; 覆盖: 菜鸟裹裹 / 喜马拉雅 / 百度网盘 / 365日历(万年历) 等 200+ App 启动页",
+        "; 覆盖: 菜鸟裹裹 / 喜马拉雅 / 闲鱼 / 迅雷 / 百度网盘 / 365日历 等 200+ App",
         "; ⚠️ 部分规则生效需清除对应 App 缓存或重装后首次启动拦截",
         "; ============================================================",
         "",
@@ -486,14 +619,29 @@ def build_app_killers() -> str | None:
         body += f"; ---- {label} ----\n" + "\n".join(lines) + "\n\n"
     mitm_line = "hostname = " + ", ".join(uniq)
     out = header + body + mitm_line + "\n"
+
+    # 最终校验: 每条非注释重写行必须是 `URL正则 url <合法类型> ...` 格式
+    _valid_prefix = ("reject", "302", "307", "request-", "response-",
+                     "script-", "echo-", "req-prv")
+    for ln in out.splitlines():
+        t = ln.strip()
+        if not t or t.startswith(("#", ";")) or t.lower().startswith("hostname"):
+            continue
+        if " url " not in t:
+            raise SystemExit(f"App-Killers 校验失败(缺少 ' url '): {t[:80]}")
+        rtype = t.split(" url ", 1)[1].split(None, 1)[0].lower()
+        if not rtype.startswith(_valid_prefix):
+            raise SystemExit(f"App-Killers 校验失败(非法重写类型 '{rtype}'): {t[:80]}")
+
     (outdir / "App-Killers.conf").write_text(out, encoding="utf-8")
     print(f"  - App-Killers.conf 已生成: {len(sections)} 个来源, {len(uniq)} 个 MITM host")
     return "App-Killers.conf"
 
 
 def fmt_rewrite_hw(path: str, tag: str) -> str:
-    raw, _jd = dual_url(path, HW_OWNER, HW_REPO, HW_BRANCH)
-    return f"{raw}, tag={tag}, update-interval=86400, opt-parser=false, enabled=true"
+    # 国内 raw.githubusercontent.com 直链断流高发 —— 统一走 jsdelivr CDN 镜像
+    # (上游 hwind2021/QuantumultX-AdBlock-CN 就是自维护仓库, 内容一致)
+    return f"{HW_BASE_JD}/{path}, tag={tag}, update-interval=86400, opt-parser=false, enabled=true"
 
 
 def fmt_rewrite_bm(path: str, tag: str) -> str:
@@ -505,10 +653,10 @@ def build_rewrite_remote() -> str:
     lines = [
         "[rewrite_remote]",
         "; === App-Killers 启动页+App 专属去广告 (本仓库本地化合并包) ===",
-        "; 菜鸟裹裹 / 喜马拉雅 / 百度网盘 / 365日历(万年历) 等开屏与内置广告,",
+        "; 菜鸟 / 喜马 / 闲鱼 / 迅雷 / 网盘 / 万年历 等开屏与内置广告,",
         "; 合并自 deezertidal(墨鱼) 与 fmz200 两个活跃规则库, 内部 .js 全部本地化",
         "",
-        f"{SELF_BASE_JD}/rewrite-local/App-Killers.conf, tag=🚀 启动页去广告(菜鸟/喜马/网盘/万年历), update-interval=86400, opt-parser=false, enabled=true",
+        f"{SELF_BASE_JD}/rewrite-local/App-Killers.conf, tag=🚀 启动页去广告(菜鸟/喜马/闲鱼/迅雷/网盘/万年历), update-interval=86400, opt-parser=false, enabled=true",
         "",
         "; === hwind2021/QuantumultX-AdBlock-CN 国内化重写规则 ===",
         f"; 仓库: https://github.com/{HW_OWNER}/{HW_REPO}",
@@ -526,7 +674,13 @@ def build_rewrite_remote() -> str:
     for path, tag in HW_REWRITE_PATHS:
         # Script / All 用本地化版 (子资源已替换)
         fname = path.rsplit("/", 1)[-1]
-        if fname in ("AdBlock-Script.conf", "AdBlock-All.conf"):
+        if fname == "AdBlock-All.conf":
+            # 默认停用: 与 App-Killers/AdBlock-Script 规则高度重叠,
+            # 多资源叠加会使 QX 全局 MitM 主机名表过载 → 去广告失效/App 异常
+            lines.append(
+                f"{SELF_BASE_JD}/rewrite-local/{fname}, tag={tag}, update-interval=86400, opt-parser=false, enabled=false"
+            )
+        elif fname in ("AdBlock-Script.conf", "AdBlock-All.conf"):
             lines.append(
                 f"{SELF_BASE_JD}/rewrite-local/{fname}, tag={tag}, update-interval=86400, opt-parser=false, enabled=true"
             )
@@ -540,9 +694,14 @@ def build_rewrite_remote() -> str:
     for path, tag in BM_REWRITE_PATHS:
         fname = path.rsplit("/", 1)[-1]
         if fname == "AllInOne.conf":
+            # 默认停用: 单文件 855 条规则 / 733 个 MITM hostname(hostname 行 13KB),
+            # 是全局 MitM 过载的头号元凶 → 广告全面回归 + App 登录异常
             lines.append(
-                f"{SELF_BASE_JD}/rewrite-local/{fname}, tag={tag}, update-interval=86400, opt-parser=false, enabled=true"
+                f"{SELF_BASE_JD}/rewrite-local/{fname}, tag={tag}, update-interval=86400, opt-parser=false, enabled=false"
             )
+        elif fname == "Advertising.conf":
+            # 默认停用: 与 App-Killers + AdSDK 兜底分流重叠, 再减一档 MitM 压力
+            lines.append(fmt_rewrite_bm(path, tag).replace("enabled=true", "enabled=false"))
         else:
             lines.append(fmt_rewrite_bm(path, tag))
     return "\n".join(lines)
@@ -582,6 +741,12 @@ def load_mitm_hostnames() -> list[str]:
 def build_mitm(hosts: list[str]) -> str:
     if not hosts:
         return "[mitm]\nhostname ="
+    # 负条目(-domain)强制把登录域排除在全局 MitM 之外: 无论哪条远程重写带了
+    # 这些主机名, 都不会生效 —— 防止 MitM 证书校验失败导致迅雷/QQ同步助手登录异常
+    # 2026-09 调整: 迅雷广告拦截只依赖两个 URL 级重写(images.client.vip 广告素材
+    # CDN + api-shoulei-ssl 的 slots:batchGet), 这两个域名的证书兼容性已在 fmz200
+    # 上游大量用户验证过, 无需整域排除; 保留 id6.me(腾讯登录域, 证书校验严格)。
+    hosts = hosts + ["-id6.me"]
     # Quantumult X .conf 不支持反斜杠续行, hostname 必须放同一行
     return "[mitm]\nhostname = " + ", ".join(hosts)
 

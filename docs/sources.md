@@ -1,3 +1,14 @@
+---
+AIGC:
+  ContentProducer: '001191110102MAD55U9H0F10002'
+  ContentPropagator: '001191110102MAD55U9H0F10002'
+  Label: '1'
+  ProduceID: '60f5e094-352c-4d42-a088-ba21049e2c1f'
+  PropagateID: '60f5e094-352c-4d42-a088-ba21049e2c1f'
+  ReservedCode1: '57009ed0-1939-41da-9b54-7d8f05855d73'
+  ReservedCode2: '57009ed0-1939-41da-9b54-7d8f05855d73'
+---
+
 # 资源来源清单
 
 本仓库的 `QuantumultX_Profiles.conf` 整合了以下来源（按段位分组）。
@@ -48,7 +59,22 @@ https://cdn.jsdelivr.net/gh/<owner>/<repo>@<branch>/<path>
 | `rule/QuantumultX/Netflix/Netflix.list` | Netflix 锁定 |
 | `rule/QuantumultX/YouTube/YouTube.list` | YouTube 锁定 |
 
-## ✍️ [rewrite_remote]（7 条）
+## ✍️ [rewrite_remote]（8 条）
+
+### App-Killers 合并包（本仓库本地化，8 个来源）
+
+| 来源 | 说明 |
+|---|---|
+| `deezertidal/QuantumultX-Rewrite` startingad.conf | 200+ App 通用启动页去广告（墨鱼） |
+| `fmz200/wool_scripts` CaiNiaoGuoGuo.snippet | 菜鸟裹裹深度去广告 |
+| `fmz200/wool_scripts` Ximalaya.snippet | 喜马拉雅深度去广告 |
+| `deezertidal/QuantumultX-Rewrite` xmlyad.conf | 喜马拉雅开屏广告域 reject |
+| `fmz200/wool_scripts` BaiduNetdisk.snippet | 百度网盘去广告 |
+| `fmz200/wool_scripts` 365Calendar.snippet | 365日历/万年历去广告 |
+| `fmz200/wool_scripts` XianYu.snippet | 闲鱼去广告（2026-09 新增） |
+| `fmz200/wool_scripts` Thunder.snippet | 迅雷去广告（2026-09 新增） |
+
+内部脚本引用已本地化到本仓库 `scripts/`（含 goofish.js，原 ishowshu/qx）。
 
 ### hwind2021/QuantumultX-AdBlock-CN
 
@@ -77,3 +103,5 @@ https://cdn.jsdelivr.net/gh/<owner>/<repo>@<branch>/<path>
 
 - 每日 04:00 拉取 `splash-killer.js`、`feed-killer.js`（hwind2021）
 - 其他 KOP-XIAO 模板自带的定时任务
+
+> AI生成
