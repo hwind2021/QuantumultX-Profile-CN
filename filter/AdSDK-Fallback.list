@@ -31,3 +31,7 @@ host-suffix, cmgadx.com, REJECT
 # ---- 百度百青藤 (移动端广告接口专用域) ----
 host-suffix, mobads.baidu.com, REJECT
 host-suffix, mobads.cn, REJECT
+
+# ---- 百度网盘 视频广告 CDN (2026-11 补充, 分流级 REJECT 无需 MITM) ----
+# fc-video.cdn.bcebos.com 为百度网盘视频流广告素材专用域, 不承载正常业务
+host-suffix, fc-video.cdn.bcebos.com, REJECT

@@ -497,10 +497,11 @@ _AK_RULE_DROP = (
     "beacon.qq.com",                   # 腾讯分析 SDK
     "/amdc/",                          # 阿里 HTTPDNS 调度(泛域名, 弄坏闲鱼等)
 )
-# 豁免来源: fmz-xianyu 源的 amdc 规则带闲鱼标识过滤(仅拦闲鱼 App 自己的
-# 广告下发请求, 明文 http, 正则里含闲鱼 app 标识), 与黑名单里泛域名
+# 豁免来源: fmz-xianyu / fmz-cainiao 源的 amdc 规则带 App 标识过滤(仅拦对应 App 自己的
+# 广告下发请求, 明文 http, 正则里含闲鱼/菜鸟裹裹 app 标识), 与黑名单里泛域名
 # amdc.m.taobao.com 不同, 按来源豁免不误伤其他源。
-_AK_RULE_DROP_EXEMPT_SOURCES = ("fmz-xianyu",)
+# 2026-11 修复: 此前漏豁免 fmz-cainiao, 菜鸟的 amdc 广告下发拦截规则被误剔除。
+_AK_RULE_DROP_EXEMPT_SOURCES = ("fmz-xianyu", "fmz-cainiao")
 _AK_HOST_DROP = (
     "g.alicdn.com", "gw.alicdn.com", "*.bdstatic.com",
     "zconfig.alibabausercontent.com",
