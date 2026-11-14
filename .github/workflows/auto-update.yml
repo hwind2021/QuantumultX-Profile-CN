@@ -1,6 +1,9 @@
 name: Auto-update QuantumultX profile
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     # 每周日 04:00 (UTC+8)  =  Saturday 20:00 UTC
     - cron: '0 20 * * 6'
@@ -59,18 +62,45 @@ jobs:
           PYEOF
 
       - name: Auto-commit if changed
+        id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if git diff --quiet QuantumultX_Profiles.conf && [ "${{ github.event.inputs.force }}" != "true" ]; then
             echo "NO_CHANGES"
-            exit 0
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            git add QuantumultX_Profiles.conf
+            MSG="chore: 自动更新主配置 $(date -u +'%Y-%m-%d %H:%M UTC')"
+            if [ -n "${{ github.event.head_commit.message }}" ]; then
+              MSG="chore: 自动更新主配置（手动触发）"
+            fi
+            git commit -m "$MSG"
+            git push
+            echo "PUSHED"
+            echo "changed=true" >> $GITHUB_OUTPUT
           fi
-          git add QuantumultX_Profiles.conf
-          MSG="chore: 自动更新主配置 $(date -u +'%Y-%m-%d %H:%M UTC')"
-          if [ -n "${{ github.event.head_commit.message }}" ]; then
-            MSG="chore: 自动更新主配置（手动触发）"
-          fi
-          git commit -m "$MSG"
-          git push
-          echo "PUSHED"
+
+      - name: Purge jsdelivr CDN cache
+        if: always()
+        run: |
+          # 主配置/重写包/兼底列表被 QX 订阅后走 jsdelivr;
+          # 主动 purge 让 CDN 缓存归零, 下一次拉取即为最新内容 ——
+          # 消除「推送后手机要等 10-15 分钟缓存过期」的滞后性。
+          FILES=(
+            "QuantumultX_Profiles.conf"
+            "rewrite-local/App-Killers.conf"
+            "rewrite-local/AdBlock-All.conf"
+            "rewrite-local/AdBlock-Script.conf"
+            "rewrite-local/AllInOne.conf"
+            "filter/AdSDK-Fallback.list"
+          )
+          # scripts/ 下全部 js 一并刷新(上游脚本升级后引用立即生效)
+          while IFS= read -r f; do FILES+=("$f"); done < <(git ls-files 'scripts/*.js')
+          for f in "${FILES[@]}"; do
+            if curl -fsSL "https://purge.jsdelivr.net/gh/hwind2021/QuantumultX-Profile-CN@main/$f" > /dev/null 2>&1; then
+              echo "purged: $f"
+            else
+              echo "WARN: purge 失败(不影响推流, 等缓存自然过期): $f"
+            fi
+          done
