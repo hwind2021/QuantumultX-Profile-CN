@@ -247,10 +247,14 @@ def fetch_text(url: str, timeout: int = 30) -> str | None:
 
 # ---------- [filter_remote] ----------
 def fmt_filter_hw(path: str, tag: str, fp: str | None = None) -> str:
-    raw, _jd = dual_url(path, HW_OWNER, HW_REPO, HW_BRANCH)
+    # 2026-11 修复: 原先走 raw.githubusercontent.com 直链, 国内拉取失败时
+    # QX 只报“资源拉取失败”但整体继续运行 —— 5 条核心广告列表(去广告精简/
+    # 开屏专项/HTTPDNS 拦截/隐私/防劫持)在手机上整体缺失, 广告域名全量
+    # 放行, 表现为“各种开屏都有”。统一改走 jsdelivr CDN 镜像(内容一致)。
+    url = f"{HW_BASE_JD}/{path}"
     en = "true"
     fp_part = f", force-policy={fp}" if fp else ""
-    return f"{raw}, tag={tag}, update-interval=86400, opt-parser=true, enabled={en}{fp_part}"
+    return f"{url}, tag={tag}, update-interval=86400, opt-parser=true, enabled={en}{fp_part}"
 
 
 def fmt_filter_bm(path: str, tag: str, fp: str | None = None) -> str:
@@ -760,8 +764,8 @@ def build_task_local() -> str:
         "; ============================================================",
         f"; 每日自动更新 hwind2021/{HW_REPO} 的脚本",
         "; ============================================================",
-        f"0 4 * * * {HW_BASE_RAW}/quantumultx/script/splash-killer.js, tag=🔄 更新·开屏去广告脚本, img-url={ICON_ADBLACK}, enabled=true",
-        f"0 4 * * * {HW_BASE_RAW}/quantumultx/script/feed-killer.js, tag=🔄 更新·信息流去广告脚本, img-url={ICON_ADVERTISING}, enabled=true",
+        f"0 4 * * * {HW_BASE_JD}/quantumultx/script/splash-killer.js, tag=🔄 更新·开屏去广告脚本, img-url={ICON_ADBLACK}, enabled=true",
+        f"0 4 * * * {HW_BASE_JD}/quantumultx/script/feed-killer.js, tag=🔄 更新·信息流去广告脚本, img-url={ICON_ADVERTISING}, enabled=true",
         "",
     ]
     return "\n".join(lines)

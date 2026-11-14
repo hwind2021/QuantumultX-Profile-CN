@@ -187,6 +187,22 @@ https://cdn.jsdelivr.net/gh/Koolson/Qure@master/Other/Quremini.json
 | AdSDK-Fallback.list 新增 `fc-video.cdn.bcebos.com` | 百度网盘视频流广告素材 CDN，分流级 REJECT（无需 MITM，无证书校验风险） |
 | 上游巡检结论 | fmz200 五大 App snippet、墨鱼 startingad 与 9 月基线完全一致；规则生态稳定，App 广告接口近期未变化 |
 
+### 🚨 2026-11-14 系统性修复（"各种开屏都拦不住"的根因）
+
+**根因**：主配置里 5 条核心广告分流列表（去广告精简 / 开屏专项 / HTTPDNS 拦截 / 隐私 / 防劫持）此前走 `raw.githubusercontent.com` 直链——国内拉取失败时 QX 静默降级继续运行，**手机上广告域名列表整体缺失**，表现为所有 App 开屏广告全量放行。
+
+| 变更 | 说明 |
+|---|---|
+| 5 条 hwind 核心分流列表 raw → **jsdelivr** | 消除国内拉取失败；上游每日自动更新（BlockHttpDNS 当天 08:49 仍在更新） |
+| task_local 脚本拉取 raw → jsdelivr | splash-killer.js / feed-killer.js 每日 04:00 拉取不再断流 |
+| AdSDK-Fallback 新增 pangle.cn / pangle.io / pangleglobal.com | 穿山甲海外主域兜底 |
+| AdSDK-Fallback 新增 tanx.com / alimama.com | 阿里妈妈/汇川广告交易域（纯广告域，无正常业务） |
+
+> 📱 **生效前提（设备端三步，缺一不可）**：
+> 1. QX 配置文件长按 → 更新；到「分流」页确认 5 条列表**行数 > 0 且无红色报错**
+> 2. 设置 → HTTPS 解密 → 证书状态正常；iOS 系统设置 → 通用 → 关于本机 → 证书信任设置 → QX CA **开关开启**（iOS 大版本升级后此开关常被重置，需复查）
+> 3. 目标 App **卸载重装**（清掉已缓存的开屏素材，缓存广告不走网络、规则拦不到）
+
 ## 🔗 集成的资源
 
 | 段位 | 来源 | 数量 | 说明 |

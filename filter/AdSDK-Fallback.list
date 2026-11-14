@@ -15,6 +15,15 @@ host-suffix, csjplatform.com, REJECT
 host-suffix, oceanengine.com, REJECT
 host-suffix, pangolin-sdk-toutiaozj.com, REJECT
 
+# ---- 穿山甲 Pangle 海外版/主域 (2026-11 补充) ----
+host-suffix, pangle.cn, REJECT
+host-suffix, pangle.io, REJECT
+host-suffix, pangleglobal.com, REJECT
+
+# ---- 阿里妈妈/汇川广告交易域 (2026-11 补充, 纯广告域无正常业务) ----
+host-suffix, tanx.com, REJECT
+host-suffix, alimama.com, REJECT
+
 # ---- 优量汇 GDT (腾讯系) ----
 host-suffix, gdt.qq.com, REJECT
 host-suffix, gdtimg.com, REJECT
